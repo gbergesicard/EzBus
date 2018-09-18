@@ -17,6 +17,9 @@ IPAddress apIP(192, 168, 1, 1);
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
 int captiveNetwork = 0;
+DynamicJsonBuffer jsonBuffer(10240);
+char json[]="{\"Liste\":[{\"Nom\":\"FAVRE-FELIXALEXIS\",\"Tag\":\"04708EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX1\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX2\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX3\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX4\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX5\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX6\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX7\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX8\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX9\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX10\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX11\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX12\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX13\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX14\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX15\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX16\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX17\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX18\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX19\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX20\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX21\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX22\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX23\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX24\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX25\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX26\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX27\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX28\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX29\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX30\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX31\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX32\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX33\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX34\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX35\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX36\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX37\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX38\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX39\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX40\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX41\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX42\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX43\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX44\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX45\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX46\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX47\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX48\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX49\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX50\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX51\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX52\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX53\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX54\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX55\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX56\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX57\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX58\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX59\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX60\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX61\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX62\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX63\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]}]}";
+JsonObject& root = jsonBuffer.parseObject(json);
 
 void dumpEEPROM(){
   char output[10];
@@ -56,12 +59,17 @@ void resetSettings(){
 // Generate the server page
 void D_AP_SER_Page() {
   int Tnetwork=0,i=0,len=0;
+  char chTempo[30];
+  int arraySize =  root["Liste"].size();
+
+  chTempo[0] ='\0';
   String s="";
   Tnetwork = WiFi.scanNetworks(); // Scan for total networks available
   IPAddress ip = WiFi.softAPIP(); // Get ESP8266 IP Adress
-  if (debug == 1){
-    Serial.println("Serving Page");
-  }
+  
+  sprintf(chTempo,"Nb liste :%d",arraySize);
+  traceChln("Serving Page");
+  traceChln(chTempo);
   // Generate the html setting page
   s = "\n\r\n<!DOCTYPE HTML>\r\n<html><h1>EzBus</h1> ";
   s += "<p>";
@@ -77,7 +85,6 @@ void setup() {
     if(debug == 1){
       Serial.begin(115200); //Set Baud Rate
     }
-    
  
     dnsServer.start(DNS_PORT, "*", apIP);
     server.onNotFound(D_AP_SER_Page);
@@ -93,4 +100,15 @@ void loop() {
     dnsServer.processNextRequest();
   }
   server.handleClient();
+}
+
+void traceChln(char* chTrace){
+  if (debug == 1){
+    Serial.println(chTrace);
+  }
+}
+void traceCh(char* chTrace){
+  if (debug == 1){
+    Serial.print(chTrace);
+  }
 }
