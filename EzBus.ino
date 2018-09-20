@@ -6,55 +6,27 @@
 #include <string>
 #include <DNSServer.h>
 #include "ArduinoJson.h"
+#include <FS.h> // file system management
 
 #define REV "REV0001"
 
 int debug = 1;
-ESP8266WebServer server(80);//Specify port 
-WiFiClient client;
+File fsUploadFile;              // a File object to temporarily store the received file
+ESP8266WebServer server(80);    // Web server on port 80 
+WiFiClient client;              // wifi client 
 IPAddress apIP(192, 168, 1, 1);
 // for the captive network
 const byte DNS_PORT = 53;
-DNSServer dnsServer;
+DNSServer dnsServer;            // dns server for captive wifi
 int captiveNetwork = 0;
 DynamicJsonBuffer jsonBuffer(10240);
-char json[]="{\"Liste\":[{\"Nom\":\"FAVRE-FELIXALEXIS\",\"Tag\":\"04708EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX1\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX2\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX3\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX4\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX5\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX6\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX7\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX8\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX9\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX10\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX11\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX12\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX13\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX14\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX15\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX16\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX17\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX18\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX19\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX20\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX21\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX22\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX23\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX24\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX25\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX26\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX27\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX28\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX29\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX30\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX31\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX32\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX33\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX34\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX35\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX36\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX37\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX38\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX39\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX40\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX41\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX42\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX43\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX44\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX45\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX46\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX47\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX48\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX49\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX50\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX51\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX52\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX53\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX54\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX55\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX56\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX57\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX58\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX59\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX60\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX61\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX62\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]},{\"Nom\":\"DUPONTALEX63\",\"Tag\":\"046C8EE2AC5C80\",\"Incidents\":0,\"MP\":[17,50],\"ME\":[17,50]}]}";
-JsonObject& root = jsonBuffer.parseObject(json);
+String Gjson="";
+String jsonFileName="/EZBus.json";
+JsonObject& root = jsonBuffer.parseObject(Gjson);
 
-void dumpEEPROM(){
-  char output[10];
-  Serial.println("dumpEEPROM start");
-  for(int i =0;i<70;i++){
-    snprintf(output,10,"%x ",EEPROM.read(i));
-    Serial.print(output);
-  }
-  Serial.println("\ndumpEEPROM stop");
-}
-
-// Clear Eeprom
-void ClearEeprom(){
-  if (debug == 1){
-    Serial.println("Clearing Eeprom");
-  }
-  for (int i = 0; i < 500; ++i) { EEPROM.write(i, 0); }
-  if (debug == 1){
-    Serial.println("Clearing Eeprom end");
-  }
-}
-
-
-void resetSettings(){
-  if (debug == 1){
-    Serial.println("");
-    Serial.println("Reset EEPROM");  
-    Serial.println("Rebooting ESP");
-  }
-  ClearEeprom();//First Clear Eeprom
-  server.send(200, "text/plain", "Reseting settings, ESP will reboot soon");
-  delay(100);
-  EEPROM.commit();
-  ESP.restart();
-}
+String getContentType(String filename); // convert the file extension to the MIME type
+bool handleFileRead(String path);       // send the right file to the client (if it exists)
+void handleFileUpload();                // upload a new file to the SPIFFS
 
 // Generate the server page
 void D_AP_SER_Page() {
@@ -77,6 +49,24 @@ void D_AP_SER_Page() {
   server.send( 200 , "text/html", s);
 }
 
+void UploadPage(){
+  traceChln("Serving Upload Page");
+  String s="";
+  // build page
+  s = "<!DOCTYPE html>";
+  s += "<html>";
+  s += "<body>";
+  s += "<h1>EzBus File Upload</h1>";
+  s += "<form action=\"/upload\" method=\"post\" enctype=\"multipart/form-data\">";
+  s += "    <input type=\"file\" name=\"name\">";
+  s += "    <input class=\"button\" type=\"submit\" value=\"Upload\">";
+  s += "</form>";
+  s += "</body>";
+  s += "</html>";
+  // Send page
+  server.send( 200 , "text/html", s);
+}
+
 void setup() {
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
@@ -84,11 +74,29 @@ void setup() {
     delay(100); //Stable AP
     if(debug == 1){
       Serial.begin(115200); //Set Baud Rate
+      Serial.print("IP address:\t");
+      Serial.println(WiFi.localIP());           // Send the IP address of the ESP8266 to the computer
     }
- 
+
+    // initilize file system
+    SPIFFS.begin();
+
+    if (isFileExists(jsonFileName)){
+      UpdateJson(jsonFileName,&root,&jsonBuffer);
+    }
     dnsServer.start(DNS_PORT, "*", apIP);
     server.onNotFound(D_AP_SER_Page);
-    server.on("/",D_AP_SER_Page); 
+    server.on("/",D_AP_SER_Page);
+    server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
+      [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
+      handleFileUpload                                    // Receive and save the file
+    );
+    server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
+    if (!handleFileRead("/EZBus.json"))                // send it if it exists
+      server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
+    });
+    server.on("/up",UploadPage);
+    
     server.begin();
     // captive network is active 
     captiveNetwork = 1;
@@ -100,6 +108,88 @@ void loop() {
     dnsServer.processNextRequest();
   }
   server.handleClient();
+}
+
+String getContentType(String filename) { // convert the file extension to the MIME type
+  if (filename.endsWith(".html")) return "text/html";
+  else if (filename.endsWith(".css")) return "text/css";
+  else if (filename.endsWith(".js")) return "application/javascript";
+  else if (filename.endsWith(".ico")) return "image/x-icon";
+  else if (filename.endsWith(".gz")) return "application/x-gzip";
+  return "text/plain";
+}
+
+bool handleFileRead(String path) { // send the right file to the client (if it exists)
+  Serial.println("handleFileRead: " + path);
+  if (path.endsWith("/")) path += "index.html";          // If a folder is requested, send the index file
+  String contentType = getContentType(path);             // Get the MIME type
+  String pathWithGz = path + ".gz";
+  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) { // If the file exists, either as a compressed archive, or normal
+    if (SPIFFS.exists(pathWithGz))                         // If there's a compressed version available
+      path += ".gz";                                         // Use the compressed verion
+    File file = SPIFFS.open(path, "r");                    // Open the file
+    size_t sent = server.streamFile(file, contentType);    // Send it to the client
+    file.close();                                          // Close the file again
+    Serial.println(String("\tSent file: ") + path);
+    return true;
+  }
+  Serial.println(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
+  return false;
+}
+
+void handleFileUpload(){ // upload a new file to the SPIFFS
+  traceChln("uploading a file !");
+  HTTPUpload& upload = server.upload();
+  if(upload.status == UPLOAD_FILE_START){
+    String filename = upload.filename;
+    if(!filename.startsWith("/")) filename = "/"+filename;
+    jsonFileName = filename;
+    Serial.print("handleFileUpload Name: "); Serial.println(filename);
+    fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
+    filename = String();
+  } else if(upload.status == UPLOAD_FILE_WRITE){
+    if(fsUploadFile)
+      fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
+  } else if(upload.status == UPLOAD_FILE_END){
+    if(fsUploadFile) {                                    // If the file was successfully created
+      fsUploadFile.close();                               // Close the file again
+      Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+      server.sendHeader("Location","/success.html");      // Redirect the client to the success page
+      server.send(303);
+      UpdateJson(jsonFileName,&root,&jsonBuffer);
+    } else {
+      server.send(500, "text/plain", "500: couldn't create file");
+    }
+  }
+}
+
+void UpdateJson(String fileName,JsonObject& Proot,DynamicJsonBuffer PjsonBuffer){
+  if(fileName == ""){
+    return;
+  }
+  if (debug == 1){
+    Serial.println("UpdateJson load file");
+    Serial.println(fileName);
+  }
+  File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
+  String json = dataFile.readString();                    // read data to 'json' variable
+  dataFile.close();                                       // close file
+  if (debug == 1){
+    Serial.println(json);
+  }
+  JsonObject& Proot = PjsonBuffer.parseObject(json);
+  char chTempo[30];
+  int arraySize =  Proot["Liste"].size();
+
+  chTempo[0] ='\0';
+  String s="";
+  
+  sprintf(chTempo,"Nb liste :%d",arraySize);
+  traceChln(chTempo);
+}
+
+bool isFileExists(String filename){
+  return(SPIFFS.exists(filename));
 }
 
 void traceChln(char* chTrace){
