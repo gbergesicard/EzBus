@@ -82,7 +82,7 @@ void setup() {
     SPIFFS.begin();
 
     if (isFileExists(jsonFileName)){
-      UpdateJson(jsonFileName,&root,&jsonBuffer);
+      UpdateJson(jsonFileName,&root);
     }
     dnsServer.start(DNS_PORT, "*", apIP);
     server.onNotFound(D_AP_SER_Page);
@@ -156,14 +156,14 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
       Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
-      UpdateJson(jsonFileName,&root,&jsonBuffer);
+      UpdateJson(jsonFileName,&root);
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
     }
   }
 }
 
-void UpdateJson(String fileName,JsonObject& Proot,DynamicJsonBuffer PjsonBuffer){
+void UpdateJson(String fileName,JsonObject* Proot){
   if(fileName == ""){
     return;
   }
@@ -177,9 +177,9 @@ void UpdateJson(String fileName,JsonObject& Proot,DynamicJsonBuffer PjsonBuffer)
   if (debug == 1){
     Serial.println(json);
   }
-  JsonObject& Proot = PjsonBuffer.parseObject(json);
+  Proot = (JsonObject*) jsonBuffer.parseObject(json);
   char chTempo[30];
-  int arraySize =  Proot["Liste"].size();
+  int arraySize =  (*Proot)["Liste"].size();
 
   chTempo[0] ='\0';
   String s="";
