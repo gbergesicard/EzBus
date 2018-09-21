@@ -19,10 +19,10 @@ IPAddress apIP(192, 168, 1, 1);
 const byte DNS_PORT = 53;
 DNSServer dnsServer;            // dns server for captive wifi
 int captiveNetwork = 0;
-DynamicJsonBuffer jsonBuffer(10240);
+StaticJsonBuffer<20480> jsonBuffer;
 String Gjson="";
 String jsonFileName="/EZBus.json";
-JsonObject& root = jsonBuffer.parseObject(Gjson);
+JsonObject* root;// = &jsonBuffer.parseObject(Gjson);
 
 String getContentType(String filename); // convert the file extension to the MIME type
 bool handleFileRead(String path);       // send the right file to the client (if it exists)
@@ -32,7 +32,7 @@ void handleFileUpload();                // upload a new file to the SPIFFS
 void D_AP_SER_Page() {
   int Tnetwork=0,i=0,len=0;
   char chTempo[30];
-  int arraySize =  root["Liste"].size();
+  int arraySize =  (*root)["Liste"].size();
 
   chTempo[0] ='\0';
   String s="";
@@ -40,7 +40,7 @@ void D_AP_SER_Page() {
   IPAddress ip = WiFi.softAPIP(); // Get ESP8266 IP Adress
   
   sprintf(chTempo,"Nb liste :%d",arraySize);
-  traceChln("Serving Page");
+  traceChln("Serving Root Page");
   traceChln(chTempo);
   // Generate the html setting page
   s = "\n\r\n<!DOCTYPE HTML>\r\n<html><h1>EzBus</h1> ";
@@ -83,6 +83,13 @@ void setup() {
 
     if (isFileExists(jsonFileName)){
       UpdateJson(jsonFileName,&root);
+      if(debug == 1){
+        char chTempo[30];
+        chTempo[0] ='\0';
+        
+        sprintf(chTempo,"Setup pointeur root :%Ox",root);
+        traceChln(chTempo);
+      }
     }
     dnsServer.start(DNS_PORT, "*", apIP);
     server.onNotFound(D_AP_SER_Page);
@@ -163,13 +170,13 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
   }
 }
 
-void UpdateJson(String fileName,JsonObject* Proot){
-  if(fileName == ""){
-    return;
-  }
+void UpdateJson(String fileName,JsonObject** Proot){
   if (debug == 1){
     Serial.println("UpdateJson load file");
     Serial.println(fileName);
+  }
+  if(fileName == ""){
+    return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
   String json = dataFile.readString();                    // read data to 'json' variable
@@ -177,9 +184,17 @@ void UpdateJson(String fileName,JsonObject* Proot){
   if (debug == 1){
     Serial.println(json);
   }
-  Proot = (JsonObject*) jsonBuffer.parseObject(json);
+  jsonBuffer.clear();
+  *Proot =  &jsonBuffer.parseObject(json);
+  if((**Proot).invalid()==JsonObject::invalid()){
+  if (debug == 1){
+    Serial.println("Failed to parse Json");
+  }
+    
+  }
+
   char chTempo[30];
-  int arraySize =  (*Proot)["Liste"].size();
+  int arraySize =  (**Proot)["Liste"].size();
 
   chTempo[0] ='\0';
   String s="";
