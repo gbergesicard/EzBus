@@ -118,6 +118,9 @@ void upload_Page(){
 }
 void passenger_Page() {
   traceChln("Serving travel Page");
+  int arraySize =  (*root)["Passengers"].size();
+  traceCh("Nb Passengers :");
+  traceChln(String(arraySize));
   String s="";
   // Generate the html root page
   s = "<!DOCTYPE HTML>";
@@ -125,16 +128,14 @@ void passenger_Page() {
   s += "<html>";
   s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
   s += "<body>";
-  s +="<h1>EzBus Liste des Voyageurs</h1> ";
+  s +="<h1>Liste des Voyageurs</h1> ";
   s +="<table>";
+  s +="<h2>Nombre de voyageurs total : "+String(arraySize)+"</h2>";
   s +="<tr>";
   s +="  <th>Nom</th>";
   s +="  <th>Num&eacute;ro badge</th>";
   s +="</tr>";
   // loop on the liste elements 
-  int arraySize =  (*root)["Passengers"].size();
-  traceCh("Nb Passengers :");
-  traceChln(String(arraySize));
   for(short wni = 0;wni <arraySize;wni++){
     s +="<tr>";
     const char* Name = (*root)["Passengers"][wni]["Name"];
@@ -240,7 +241,7 @@ void loop() {
       clearLine(1);
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
 
-      if (debug==1) { Serial.println("Tag Id: " + tagId); };
+      traceChln("Tag Id: " + tagId);
       lcdPrint(0,0,"Tag");
       lcdPrint(1,0,tagId);
 
@@ -274,7 +275,7 @@ String getContentType(String filename) { // convert the file extension to the MI
 }
 
 bool handleFileRead(String path) { // send the right file to the client (if it exists)
-  Serial.println("handleFileRead: " + path);
+  traceChln("handleFileRead: " + path);
   if (path.endsWith("/")) path += "index.html";          // If a folder is requested, send the index file
   String contentType = getContentType(path);             // Get the MIME type
   String pathWithGz = path + ".gz";
@@ -284,10 +285,10 @@ bool handleFileRead(String path) { // send the right file to the client (if it e
     File file = SPIFFS.open(path, "r");                    // Open the file
     size_t sent = server.streamFile(file, contentType);    // Send it to the client
     file.close();                                          // Close the file again
-    Serial.println(String("\tSent file: ") + path);
+    traceChln(String("\tSent file: ") + path);
     return true;
   }
-  Serial.println(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
+  traceChln(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
   return false;
 }
 
@@ -298,7 +299,7 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
     String filename = upload.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
     jsonFileName = filename;
-    Serial.print("handleFileUpload Name: "); Serial.println(filename);
+    traceCh("handleFileUpload Name: "); traceChln(filename);
     fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
     filename = String();
   } else if(upload.status == UPLOAD_FILE_WRITE){
@@ -307,7 +308,8 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
   } else if(upload.status == UPLOAD_FILE_END){
     if(fsUploadFile) {                                    // If the file was successfully created
       fsUploadFile.close();                               // Close the file again
-      Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+      traceCh("handleFileUpload Size: "); traceChln(String(upload.totalSize));
+      traceChln("file name : "+upload.filename);
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
       updateJson(jsonFileName,&root);
@@ -318,25 +320,19 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
 }
 
 void updateJson(String fileName,JsonObject** Proot){
-  if (debug == 1){
-    Serial.println("updateJson load file");
-    Serial.println(fileName);
-  }
+  traceChln("updateJson load file");
+  traceChln(fileName);
   if(fileName == ""){
     return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
   String json = dataFile.readString();                    // read data to 'json' variable
   dataFile.close();                                       // close file
-  if (debug == 1){
-    Serial.println(json);
-  }
+  traceChln(json);
   jsonBuffer.clear();
   *Proot =  &jsonBuffer.parseObject(json);
   if((**Proot).invalid()==JsonObject::invalid()){
-    if (debug == 1){
-      Serial.println("Failed to parse Json");
-    }
+    traceChln("Failed to parse Json");
   }
   int arraySize =  (**Proot)["Passengers"].size();
   String s=String(arraySize);
@@ -345,20 +341,15 @@ void updateJson(String fileName,JsonObject** Proot){
 
 
 void loadCss(String fileName){
-  if (debug == 1){
-    Serial.println("loadCss load file");
-    Serial.println(fileName);
-  }
+    traceChln("loadCss load file");
+    traceChln(fileName);
   if(fileName == ""){
     return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
   css = dataFile.readString();                  // read data to 'css' variable
   dataFile.close();                             // close file
-  if (debug == 1){
-    Serial.println(css);
-  }
-  jsonBuffer.clear();
+  traceChln(css);
 }
 
 bool isFileExists(String filename){
