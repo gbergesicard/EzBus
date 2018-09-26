@@ -72,6 +72,7 @@ void settings_Page() {
   s += "<body>";
   s +="<h1>EzBus Settings</h1> ";
   s +="<a href=\"/up\">Upload file</a><br>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   server.send( 200 , "text/html", s);
@@ -86,10 +87,10 @@ void travel_Page() {
   s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
   s += "<body>";
   s +="<h1>EzBus travel</h1> ";
-  s +="<a href=\"/\">Liste voyageurs</a><br>";
-  s +="<a href=\"/\">Liste voyageurs</a><br>";
+  s +="<a href=\"/passengers\">Liste voyageurs</a><br>";
   s +="<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
   s +="<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   server.send( 200 , "text/html", s);
@@ -109,11 +110,50 @@ void upload_Page(){
   s += "    <input type=\"file\" name=\"name\">";
   s += "    <input class=\"button\" type=\"submit\" value=\"Upload\">";
   s += "</form>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   // Send page
   server.send( 200 , "text/html", s);
 }
+void passenger_Page() {
+  traceChln("Serving travel Page");
+  String s="";
+  // Generate the html root page
+  s = "<!DOCTYPE HTML>";
+  s += meta;
+  s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  s += "<body>";
+  s +="<h1>EzBus Liste des Voyageurs</h1> ";
+  s +="<table>";
+  s +="<tr>";
+  s +="  <th>Nom</th>";
+  s +="  <th>Num&eacute;ro badge</th>";
+  s +="</tr>";
+  // loop on the liste elements 
+  int arraySize =  (*root)["Passengers"].size();
+  traceCh("Nb Passengers :");
+  traceChln(String(arraySize));
+  for(short wni = 0;wni <arraySize;wni++){
+    s +="<tr>";
+    const char* Name = (*root)["Passengers"][wni]["Name"];
+    const char* Tag = (*root)["Passengers"][wni]["Tag"];
+    s +="<td>";
+    s +=Name;
+    s +="</td>";
+    s +="<td>";
+    s +=Tag;
+    s +="</td>";
+    s +="</tr>";
+  }
+  s +="</table>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
+  s += "</body>";
+  s += "</html>";
+  server.send( 200 , "text/html", s);
+}
+
 
 /*
  * Callback for backlight saver management
@@ -126,7 +166,7 @@ void callbackBacklight() {
 void setup() {
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  WiFi.softAP("Wifi device setup");
+  WiFi.softAP("EZBus");
   delay(100); //Stable AP
   if(debug == 1){
     Serial.begin(115200); //Set Baud Rate
@@ -162,6 +202,8 @@ void setup() {
   server.on("/up",upload_Page);
   server.on("/settings",settings_Page);
   server.on("/travel",travel_Page);
+  server.on("/passengers",passenger_Page);
+  
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
     [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
     handleFileUpload                                    // Receive and save the file
@@ -292,20 +334,13 @@ void updateJson(String fileName,JsonObject** Proot){
   jsonBuffer.clear();
   *Proot =  &jsonBuffer.parseObject(json);
   if((**Proot).invalid()==JsonObject::invalid()){
-  if (debug == 1){
-    Serial.println("Failed to parse Json");
+    if (debug == 1){
+      Serial.println("Failed to parse Json");
+    }
   }
-    
-  }
-
-  char chTempo[30];
-  int arraySize =  (**Proot)["Liste"].size();
-
-  chTempo[0] ='\0';
-  String s="";
-  
-  sprintf(chTempo,"Nb liste :%d",arraySize);
-  traceChln(chTempo);
+  int arraySize =  (**Proot)["Passengers"].size();
+  String s=String(arraySize);
+  traceChln("Nb liste : "+s);
 }
 
 
@@ -335,7 +370,17 @@ void traceChln(char* chTrace){
     Serial.println(chTrace);
   }
 }
+void traceChln(String chTrace){
+  if (debug == 1){
+    Serial.println(chTrace);
+  }
+}
 void traceCh(char* chTrace){
+  if (debug == 1){
+    Serial.print(chTrace);
+  }
+}
+void traceCh(String chTrace){
   if (debug == 1){
     Serial.print(chTrace);
   }
