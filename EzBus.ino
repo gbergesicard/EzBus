@@ -34,41 +34,75 @@ const byte DNS_PORT = 53;
 DNSServer dnsServer;            // dns server for captive wifi
 int captiveNetwork = 0;
 StaticJsonBuffer<20480> jsonBuffer;
-String Gjson="";
 String jsonFileName="/EZBus.json";
-JsonObject* root;// = &jsonBuffer.parseObject(Gjson);
+String cssFileName="/EZBus.css";
+String css ="";
+JsonObject* root;
+char meta[] = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
 
 String getContentType(String filename); // convert the file extension to the MIME type
 bool handleFileRead(String path);       // send the right file to the client (if it exists)
 void handleFileUpload();                // upload a new file to the SPIFFS
 
 // Generate the server page
-void D_AP_SER_Page() {
-  int Tnetwork=0,i=0,len=0;
-  char chTempo[30];
-  int arraySize =  (*root)["Liste"].size();
-
-  chTempo[0] ='\0';
-  String s="";
-  Tnetwork = WiFi.scanNetworks(); // Scan for total networks available
-  IPAddress ip = WiFi.softAPIP(); // Get ESP8266 IP Adress
-  
-  sprintf(chTempo,"Nb liste :%d",arraySize);
+void root_Page() {
   traceChln("Serving Root Page");
-  traceChln(chTempo);
-  // Generate the html setting page
-  s = "\n\r\n<!DOCTYPE HTML>\r\n<html><h1>EzBus</h1> ";
-  s += "<p>";
-  s += "</html>\r\n\r\n";
+  String s="";
+  // Generate the html root page
+  s = "<!DOCTYPE HTML>";
+  s += meta;
+  s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  s += "<body>";
+  s +="<h1>EzBus</h1> ";
+  s +="<a href=\"/settings\">Settings</a><br>";
+  s +="<a href=\"/travel\">Voyage</a><br>";
+  s += "</body>";
+  s += "</html>";
+  server.send( 200 , "text/html", s);
+}
+void settings_Page() {
+  traceChln("Serving settings Page");
+  String s="";
+  // Generate the html root page
+  s = "<!DOCTYPE HTML>";
+  s += meta;
+  s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  s += "<body>";
+  s +="<h1>EzBus Settings</h1> ";
+  s +="<a href=\"/up\">Upload file</a><br>";
+  s += "</body>";
+  s += "</html>";
+  server.send( 200 , "text/html", s);
+}
+void travel_Page() {
+  traceChln("Serving travel Page");
+  String s="";
+  // Generate the html root page
+  s = "<!DOCTYPE HTML>";
+  s += meta;
+  s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  s += "<body>";
+  s +="<h1>EzBus travel</h1> ";
+  s +="<a href=\"/\">Liste voyageurs</a><br>";
+  s +="<a href=\"/\">Liste voyageurs</a><br>";
+  s +="<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
+  s +="<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
+  s += "</body>";
+  s += "</html>";
   server.send( 200 , "text/html", s);
 }
 
-void UploadPage(){
+void upload_Page(){
   traceChln("Serving Upload Page");
   String s="";
   // build page
   s = "<!DOCTYPE html>";
+  s += meta;
   s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
   s += "<body>";
   s += "<h1>EzBus File Upload</h1>";
   s += "<form action=\"/upload\" method=\"post\" enctype=\"multipart/form-data\">";
@@ -117,27 +151,25 @@ void setup() {
   SPIFFS.begin();
 
   if (isFileExists(jsonFileName)){
-    UpdateJson(jsonFileName,&root);
-    if(debug == 1){
-      char chTempo[30];
-      chTempo[0] ='\0';
-      
-      sprintf(chTempo,"Setup pointeur root :%Ox",root);
-      traceChln(chTempo);
-    }
+    updateJson(jsonFileName,&root);
+  }
+  if (isFileExists(cssFileName)){
+    loadCss(cssFileName);
   }
   dnsServer.start(DNS_PORT, "*", apIP);
-  server.onNotFound(D_AP_SER_Page);
-  server.on("/",D_AP_SER_Page);
+  server.onNotFound(root_Page);
+  server.on("/",root_Page);
+  server.on("/up",upload_Page);
+  server.on("/settings",settings_Page);
+  server.on("/travel",travel_Page);
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
     [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
     handleFileUpload                                    // Receive and save the file
   );
   server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
-  if (!handleFileRead("/EZBus.json"))                // send it if it exists
+  if (!handleFileRead(jsonFileName))                // send it if it exists
     server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
   });
-  server.on("/up",UploadPage);
   
   server.begin();
   // captive network is active 
@@ -167,6 +199,8 @@ void loop() {
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
 
       if (debug==1) { Serial.println("Tag Id: " + tagId); };
+      lcdPrint(0,0,"Tag");
+      lcdPrint(1,0,tagId);
 
       // TO DO: search the TagId in JSON
       /*if (existTag(tagId)) {
@@ -234,16 +268,16 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
       Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
-      UpdateJson(jsonFileName,&root);
+      updateJson(jsonFileName,&root);
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
     }
   }
 }
 
-void UpdateJson(String fileName,JsonObject** Proot){
+void updateJson(String fileName,JsonObject** Proot){
   if (debug == 1){
-    Serial.println("UpdateJson load file");
+    Serial.println("updateJson load file");
     Serial.println(fileName);
   }
   if(fileName == ""){
@@ -272,6 +306,24 @@ void UpdateJson(String fileName,JsonObject** Proot){
   
   sprintf(chTempo,"Nb liste :%d",arraySize);
   traceChln(chTempo);
+}
+
+
+void loadCss(String fileName){
+  if (debug == 1){
+    Serial.println("loadCss load file");
+    Serial.println(fileName);
+  }
+  if(fileName == ""){
+    return;
+  }
+  File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
+  css = dataFile.readString();                  // read data to 'css' variable
+  dataFile.close();                             // close file
+  if (debug == 1){
+    Serial.println(css);
+  }
+  jsonBuffer.clear();
 }
 
 bool isFileExists(String filename){
