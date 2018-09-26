@@ -19,7 +19,7 @@
 #define RST_PIN 16 // D0
 #define SS_PIN 15 // D8
 
-#define BACKLIGHT_TIMER 5 // 5 seconds
+#define BACKLIGHT_TIMER 8 // 8 seconds
 
 int debug = 1;
 File fsUploadFile;              // a File object to temporarily store the received file
@@ -124,6 +124,10 @@ void callbackBacklight() {
 }
 
 void setup() {
+  // Init the LCD
+  lcd.begin();
+  lcdPrint(0,0,"Starting setup");
+  
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP("Wifi device setup");
@@ -138,9 +142,6 @@ void setup() {
   pinMode(LED_PIN_RED, OUTPUT);
   pinMode(LED_PIN_GREEN, OUTPUT);
 
-  // Init the LCD
-  lcd.begin();
-
   // Init SPI bus
   SPI.begin();
 
@@ -151,11 +152,15 @@ void setup() {
   SPIFFS.begin();
 
   if (isFileExists(jsonFileName)){
+    lcdPrint(1,0,"Load JSON");
     updateJson(jsonFileName,&root);
   }
   if (isFileExists(cssFileName)){
     loadCss(cssFileName);
   }
+  String jsonString="{\"Passengers\":[{\"Name\":\"BERTHOUD MARTIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"BETEND ELIOTT\", \"Tag\":\"04508ee2ac5c80\", \"Issues\":\"2\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BETEND GASPARD\", \"Tag\":\"04548ee2ac5c80\", \"Issues\":\"3\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET AMANDINE\", \"Tag\":\"04588ee2ac5c80\", \"Issues\":\"4\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET ARTHUR\", \"Tag\":\"04608ee2ac5c80\", \"Issues\":\"5\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET NICOLAS\", \"Tag\":\"045c8ee2ac5c80\", \"Issues\":\"6\", \"PI\":[], \"EI\":[]},{\"Name\":\"BIBOLLET SAMUEL\", \"Tag\":\"\", \"Issues\":\"7\", \"PI\":[], \"EI\":[]},{\"Name\":\"BOUMIZI ADAM-ADRIANO\", \"Tag\":\"\", \"Issues\":\"8\", \"PI\":[], \"EI\":[]},{\"Name\":\"CARANTE GABIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"CHARVAT LORIS\", \"Tag\":\"db4db8c3\", \"Issues\":\"1\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHARVAT NINO\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL LOLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL SOFIA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHRETIEN LILIAN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CREDOZ ESTELLE\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE MAÉ\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE STELLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]}],\"Travels\":[{\"Id\":1,\"Name\":\"Aller\",\"Steps\":[1]},{\"Id\":2,\"Name\":\"Retour\",\"Steps\":[2]}],\"Steps\":[{\"Id\":1,\"Place\":\"Les Villards\"},{\"Id\":2,\"Place\":\"La Clusaz\"}]}";
+  root =  &jsonBuffer.parseObject(jsonString);
+  
   dnsServer.start(DNS_PORT, "*", apIP);
   server.onNotFound(root_Page);
   server.on("/",root_Page);
@@ -199,16 +204,16 @@ void loop() {
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
 
       if (debug==1) { Serial.println("Tag Id: " + tagId); };
-      lcdPrint(0,0,"Tag");
-      lcdPrint(1,0,tagId);
 
-      // TO DO: search the TagId in JSON
-      /*if (existTag(tagId)) {
-          digitalWrite(LED_PIN_RED, LOW);
-          digitalWrite(LED_PIN_GREEN, HIGH);
-          wait(1000);
-        }
-      }*/
+      int passengerRank = searchTag(tagId, root);
+      if (passengerRank > -1) {
+        lcdPrint(1,0,(*root)["Passengers"][passengerRank]["Name"].as<String>());
+        setPresent(passengerRank,1,2,root);
+        if (debug==1) {(*root)["Passengers"][passengerRank].printTo(Serial); }
+        digitalWrite(LED_PIN_RED, LOW);
+        digitalWrite(LED_PIN_GREEN, HIGH);
+        delay(1000);
+      }
     }
   }
 }
@@ -266,11 +271,13 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
     if(fsUploadFile) {                                    // If the file was successfully created
       fsUploadFile.close();                               // Close the file again
       Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+      lcdPrint(1,0,"Get JSON File -> OK");
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
       updateJson(jsonFileName,&root);
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
+      lcdPrint(1,0,"Get JSON File -> KO");
     }
   }
 }
@@ -292,14 +299,13 @@ void updateJson(String fileName,JsonObject** Proot){
   jsonBuffer.clear();
   *Proot =  &jsonBuffer.parseObject(json);
   if((**Proot).invalid()==JsonObject::invalid()){
-  if (debug == 1){
-    Serial.println("Failed to parse Json");
-  }
-    
+    if (debug == 1){
+      Serial.println("Failed to parse Json");
+    }
   }
 
   char chTempo[30];
-  int arraySize =  (**Proot)["Liste"].size();
+  int arraySize =  (**Proot)["Passengers"].size();
 
   chTempo[0] ='\0';
   String s="";
@@ -339,6 +345,30 @@ void traceCh(char* chTrace){
   if (debug == 1){
     Serial.print(chTrace);
   }
+}
+
+/*
+ * Search the tag "tag" in the json "proot"
+ * Return the rank if found, else -1
+ */
+int searchTag(String tag, JsonObject* proot) {
+  for (int i=0; i<(*proot)["Passengers"].size(); i++) {
+    if ((*proot)["Passengers"][i]["Tag"] == tag) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/*
+ * Mark a passager as present
+ */
+void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot) {
+  char stringJson[]=""; 
+  sprintf(stringJson,"[%d,%d]",travel,stepTravel);
+  JsonArray& newArray = jsonBuffer.parseArray(stringJson);
+  JsonArray& passengerEI = (*proot)["Passengers"][passengerRank]["EI"];
+  passengerEI.add(newArray);
 }
 
 // LCD management
