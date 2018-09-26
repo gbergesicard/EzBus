@@ -72,6 +72,7 @@ void settings_Page() {
   s += "<body>";
   s +="<h1>EzBus Settings</h1> ";
   s +="<a href=\"/up\">Upload file</a><br>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   server.send( 200 , "text/html", s);
@@ -86,10 +87,10 @@ void travel_Page() {
   s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
   s += "<body>";
   s +="<h1>EzBus travel</h1> ";
-  s +="<a href=\"/\">Liste voyageurs</a><br>";
-  s +="<a href=\"/\">Liste voyageurs</a><br>";
+  s +="<a href=\"/passengers\">Liste voyageurs</a><br>";
   s +="<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
   s +="<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   server.send( 200 , "text/html", s);
@@ -109,11 +110,51 @@ void upload_Page(){
   s += "    <input type=\"file\" name=\"name\">";
   s += "    <input class=\"button\" type=\"submit\" value=\"Upload\">";
   s += "</form>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
   s += "</body>";
   s += "</html>";
   // Send page
   server.send( 200 , "text/html", s);
 }
+void passenger_Page() {
+  traceChln("Serving travel Page");
+  int arraySize =  (*root)["Passengers"].size();
+  traceCh("Nb Passengers :");
+  traceChln(String(arraySize));
+  String s="";
+  // Generate the html root page
+  s = "<!DOCTYPE HTML>";
+  s += meta;
+  s += "<html>";
+  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  s += "<body>";
+  s +="<h1>Liste des Voyageurs</h1> ";
+  s +="<table>";
+  s +="<h2>Nombre de voyageurs total : "+String(arraySize)+"</h2>";
+  s +="<tr>";
+  s +="  <th>Nom</th>";
+  s +="  <th>Num&eacute;ro badge</th>";
+  s +="</tr>";
+  // loop on the liste elements 
+  for(short wni = 0;wni <arraySize;wni++){
+    s +="<tr>";
+    const char* Name = (*root)["Passengers"][wni]["Name"];
+    const char* Tag = (*root)["Passengers"][wni]["Tag"];
+    s +="<td>";
+    s +=Name;
+    s +="</td>";
+    s +="<td>";
+    s +=Tag;
+    s +="</td>";
+    s +="</tr>";
+  }
+  s +="</table>";
+  s +="<br><br><a href=\"/\">Home</a><br>";
+  s += "</body>";
+  s += "</html>";
+  server.send( 200 , "text/html", s);
+}
+
 
 /*
  * Callback for backlight saver management
@@ -130,7 +171,7 @@ void setup() {
   
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  WiFi.softAP("Wifi device setup");
+  WiFi.softAP("EZBus");
   delay(100); //Stable AP
   if(debug == 1){
     Serial.begin(115200); //Set Baud Rate
@@ -158,8 +199,8 @@ void setup() {
   if (isFileExists(cssFileName)){
     loadCss(cssFileName);
   }
-  String jsonString="{\"Passengers\":[{\"Name\":\"BERTHOUD MARTIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"BETEND ELIOTT\", \"Tag\":\"04508ee2ac5c80\", \"Issues\":\"2\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BETEND GASPARD\", \"Tag\":\"04548ee2ac5c80\", \"Issues\":\"3\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET AMANDINE\", \"Tag\":\"04588ee2ac5c80\", \"Issues\":\"4\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET ARTHUR\", \"Tag\":\"04608ee2ac5c80\", \"Issues\":\"5\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET NICOLAS\", \"Tag\":\"045c8ee2ac5c80\", \"Issues\":\"6\", \"PI\":[], \"EI\":[]},{\"Name\":\"BIBOLLET SAMUEL\", \"Tag\":\"\", \"Issues\":\"7\", \"PI\":[], \"EI\":[]},{\"Name\":\"BOUMIZI ADAM-ADRIANO\", \"Tag\":\"\", \"Issues\":\"8\", \"PI\":[], \"EI\":[]},{\"Name\":\"CARANTE GABIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"CHARVAT LORIS\", \"Tag\":\"db4db8c3\", \"Issues\":\"1\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHARVAT NINO\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL LOLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL SOFIA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHRETIEN LILIAN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CREDOZ ESTELLE\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE MAÉ\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE STELLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]}],\"Travels\":[{\"Id\":1,\"Name\":\"Aller\",\"Steps\":[1]},{\"Id\":2,\"Name\":\"Retour\",\"Steps\":[2]}],\"Steps\":[{\"Id\":1,\"Place\":\"Les Villards\"},{\"Id\":2,\"Place\":\"La Clusaz\"}]}";
-  root =  &jsonBuffer.parseObject(jsonString);
+  /*String jsonString="{\"Passengers\":[{\"Name\":\"BERTHOUD MARTIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"BETEND ELIOTT\", \"Tag\":\"04508ee2ac5c80\", \"Issues\":\"2\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BETEND GASPARD\", \"Tag\":\"04548ee2ac5c80\", \"Issues\":\"3\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET AMANDINE\", \"Tag\":\"04588ee2ac5c80\", \"Issues\":\"4\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET ARTHUR\", \"Tag\":\"04608ee2ac5c80\", \"Issues\":\"5\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET NICOLAS\", \"Tag\":\"045c8ee2ac5c80\", \"Issues\":\"6\", \"PI\":[], \"EI\":[]},{\"Name\":\"BIBOLLET SAMUEL\", \"Tag\":\"\", \"Issues\":\"7\", \"PI\":[], \"EI\":[]},{\"Name\":\"BOUMIZI ADAM-ADRIANO\", \"Tag\":\"\", \"Issues\":\"8\", \"PI\":[], \"EI\":[]},{\"Name\":\"CARANTE GABIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"CHARVAT LORIS\", \"Tag\":\"db4db8c3\", \"Issues\":\"1\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHARVAT NINO\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL LOLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL SOFIA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHRETIEN LILIAN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CREDOZ ESTELLE\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE MAÉ\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE STELLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]}],\"Travels\":[{\"Id\":1,\"Name\":\"Aller\",\"Steps\":[1]},{\"Id\":2,\"Name\":\"Retour\",\"Steps\":[2]}],\"Steps\":[{\"Id\":1,\"Place\":\"Les Villards\"},{\"Id\":2,\"Place\":\"La Clusaz\"}]}";
+  root =  &jsonBuffer.parseObject(jsonString);*/
   
   dnsServer.start(DNS_PORT, "*", apIP);
   server.onNotFound(root_Page);
@@ -167,6 +208,8 @@ void setup() {
   server.on("/up",upload_Page);
   server.on("/settings",settings_Page);
   server.on("/travel",travel_Page);
+  server.on("/passengers",passenger_Page);
+  
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
     [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
     handleFileUpload                                    // Receive and save the file
@@ -203,13 +246,12 @@ void loop() {
       clearLine(1);
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
 
-      if (debug==1) { Serial.println("Tag Id: " + tagId); };
+      traceChln("Tag Id: " + tagId);
 
       int passengerRank = searchTag(tagId, root);
       if (passengerRank > -1) {
         lcdPrint(1,0,(*root)["Passengers"][passengerRank]["Name"].as<String>());
         setPresent(passengerRank,1,2,root);
-        if (debug==1) {(*root)["Passengers"][passengerRank].printTo(Serial); }
         digitalWrite(LED_PIN_RED, LOW);
         digitalWrite(LED_PIN_GREEN, HIGH);
         delay(1000);
@@ -237,7 +279,7 @@ String getContentType(String filename) { // convert the file extension to the MI
 }
 
 bool handleFileRead(String path) { // send the right file to the client (if it exists)
-  Serial.println("handleFileRead: " + path);
+  traceChln("handleFileRead: " + path);
   if (path.endsWith("/")) path += "index.html";          // If a folder is requested, send the index file
   String contentType = getContentType(path);             // Get the MIME type
   String pathWithGz = path + ".gz";
@@ -247,10 +289,10 @@ bool handleFileRead(String path) { // send the right file to the client (if it e
     File file = SPIFFS.open(path, "r");                    // Open the file
     size_t sent = server.streamFile(file, contentType);    // Send it to the client
     file.close();                                          // Close the file again
-    Serial.println(String("\tSent file: ") + path);
+    traceChln(String("\tSent file: ") + path);
     return true;
   }
-  Serial.println(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
+  traceChln(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
   return false;
 }
 
@@ -261,7 +303,7 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
     String filename = upload.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
     jsonFileName = filename;
-    Serial.print("handleFileUpload Name: "); Serial.println(filename);
+    traceCh("handleFileUpload Name: "); traceChln(filename);
     fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
     filename = String();
   } else if(upload.status == UPLOAD_FILE_WRITE){
@@ -270,8 +312,9 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
   } else if(upload.status == UPLOAD_FILE_END){
     if(fsUploadFile) {                                    // If the file was successfully created
       fsUploadFile.close();                               // Close the file again
-      Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
-      lcdPrint(1,0,"Get JSON File -> OK");
+      traceCh("handleFileUpload Size: "); traceChln(String(upload.totalSize));
+      traceChln("file name : "+upload.filename);
+      lcdPrint(1,0,"Get JSON -> OK");
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
       updateJson(jsonFileName,&root);
@@ -283,53 +326,36 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
 }
 
 void updateJson(String fileName,JsonObject** Proot){
-  if (debug == 1){
-    Serial.println("updateJson load file");
-    Serial.println(fileName);
-  }
+  traceChln("updateJson load file");
+  traceChln(fileName);
   if(fileName == ""){
     return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
   String json = dataFile.readString();                    // read data to 'json' variable
   dataFile.close();                                       // close file
-  if (debug == 1){
-    Serial.println(json);
-  }
+  traceChln(json);
   jsonBuffer.clear();
   *Proot =  &jsonBuffer.parseObject(json);
   if((**Proot).invalid()==JsonObject::invalid()){
-    if (debug == 1){
-      Serial.println("Failed to parse Json");
-    }
+    traceChln("Failed to parse Json");
   }
-
-  char chTempo[30];
   int arraySize =  (**Proot)["Passengers"].size();
-
-  chTempo[0] ='\0';
-  String s="";
-  
-  sprintf(chTempo,"Nb liste :%d",arraySize);
-  traceChln(chTempo);
+  String s=String(arraySize);
+  traceChln("Nb liste : "+s);
 }
 
 
 void loadCss(String fileName){
-  if (debug == 1){
-    Serial.println("loadCss load file");
-    Serial.println(fileName);
-  }
+    traceChln("loadCss load file");
+    traceChln(fileName);
   if(fileName == ""){
     return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
   css = dataFile.readString();                  // read data to 'css' variable
   dataFile.close();                             // close file
-  if (debug == 1){
-    Serial.println(css);
-  }
-  jsonBuffer.clear();
+  traceChln(css);
 }
 
 bool isFileExists(String filename){
@@ -341,7 +367,17 @@ void traceChln(char* chTrace){
     Serial.println(chTrace);
   }
 }
+void traceChln(String chTrace){
+  if (debug == 1){
+    Serial.println(chTrace);
+  }
+}
 void traceCh(char* chTrace){
+  if (debug == 1){
+    Serial.print(chTrace);
+  }
+}
+void traceCh(String chTrace){
   if (debug == 1){
     Serial.print(chTrace);
   }

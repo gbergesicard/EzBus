@@ -51,6 +51,14 @@
 	.hide_mobile {
 		display: none !important;
 	}
+	td, th {
+		border: 1px solid #dddddd;
+		text-align: left;
+		padding: 8px;
+	}
+		tr:nth-child(even) {
+		background-color: #dddddd;
+	}
 	body:before {
 		content: "Version mobile du site";
 		display: block;
