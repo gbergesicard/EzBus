@@ -44,16 +44,25 @@ String getContentType(String filename); // convert the file extension to the MIM
 bool handleFileRead(String path);       // send the right file to the client (if it exists)
 void handleFileUpload();                // upload a new file to the SPIFFS
 
+void header(String* s){
+  *s = "<!DOCTYPE html>";
+  *s += meta;
+  *s += "<html>";
+  *s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  *s += "<body>";
+}
+void footer(String* s){
+  *s +="<br><br><a href=\"/\">Home</a><br>";
+  *s += "</body>";
+  *s += "</html>";
+}
+
 // Generate the server page
 void root_Page() {
   traceChln("Serving Root Page");
   String s="";
   // Generate the html root page
-  s = "<!DOCTYPE HTML>";
-  s += meta;
-  s += "<html>";
-  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
-  s += "<body>";
+  header(&s);
   s +="<h1>EzBus</h1> ";
   s +="<a href=\"/settings\">Settings</a><br>";
   s +="<a href=\"/travel\">Voyage</a><br>";
@@ -65,34 +74,22 @@ void settings_Page() {
   traceChln("Serving settings Page");
   String s="";
   // Generate the html root page
-  s = "<!DOCTYPE HTML>";
-  s += meta;
-  s += "<html>";
-  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
-  s += "<body>";
+  header(&s);
   s +="<h1>EzBus Settings</h1> ";
   s +="<a href=\"/up\">Upload file</a><br>";
-  s +="<br><br><a href=\"/\">Home</a><br>";
-  s += "</body>";
-  s += "</html>";
+  footer(&s);
   server.send( 200 , "text/html", s);
 }
 void travel_Page() {
   traceChln("Serving travel Page");
   String s="";
   // Generate the html root page
-  s = "<!DOCTYPE HTML>";
-  s += meta;
-  s += "<html>";
-  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
-  s += "<body>";
+  header(&s);
   s +="<h1>EzBus travel</h1> ";
   s +="<a href=\"/passengers\">Liste voyageurs</a><br>";
   s +="<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
   s +="<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
-  s +="<br><br><a href=\"/\">Home</a><br>";
-  s += "</body>";
-  s += "</html>";
+  footer(&s);
   server.send( 200 , "text/html", s);
 }
 
@@ -100,19 +97,13 @@ void upload_Page(){
   traceChln("Serving Upload Page");
   String s="";
   // build page
-  s = "<!DOCTYPE html>";
-  s += meta;
-  s += "<html>";
-  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
-  s += "<body>";
+  header(&s);
   s += "<h1>EzBus File Upload</h1>";
   s += "<form action=\"/upload\" method=\"post\" enctype=\"multipart/form-data\">";
   s += "    <input type=\"file\" name=\"name\">";
   s += "    <input class=\"button\" type=\"submit\" value=\"Upload\">";
   s += "</form>";
-  s +="<br><br><a href=\"/\">Home</a><br>";
-  s += "</body>";
-  s += "</html>";
+  footer(&s);
   // Send page
   server.send( 200 , "text/html", s);
 }
@@ -123,11 +114,7 @@ void passenger_Page() {
   traceChln(String(arraySize));
   String s="";
   // Generate the html root page
-  s = "<!DOCTYPE HTML>";
-  s += meta;
-  s += "<html>";
-  s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
-  s += "<body>";
+  header(&s);
   s +="<h1>Liste des Voyageurs</h1> ";
   s +="<table>";
   s +="<h2>Nombre de voyageurs total : "+String(arraySize)+"</h2>";
@@ -149,9 +136,7 @@ void passenger_Page() {
     s +="</tr>";
   }
   s +="</table>";
-  s +="<br><br><a href=\"/\">Home</a><br>";
-  s += "</body>";
-  s += "</html>";
+  footer(&s);
   server.send( 200 , "text/html", s);
 }
 
