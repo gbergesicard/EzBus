@@ -166,7 +166,7 @@ void callbackPassengerInbound() {
 void setup() {
   // Init the LCD
   lcd.begin();
-  lcdPrint(0, 0, "Starting setup");
+  lcdPrint(0, "Starting setup");
 
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
@@ -192,7 +192,7 @@ void setup() {
   SPIFFS.begin();
 
   if (isFileExists(jsonFileName)) {
-    lcdPrint(1, 0, "Load JSON");
+    lcdPrint(1, "Load JSON");
     updateJson(jsonFileName, &root);
   }
   if (isFileExists(cssFileName)) {
@@ -225,8 +225,8 @@ void setup() {
   captiveNetwork = 1;
 
   // Setup end
-  lcdPrint(0, 0, "EZBus ready!");
-  lcdPrint(1, 0, REV);
+  lcdPrint(0, "EZBus ready!");
+  lcdPrint(1,REV);
 
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_GREEN, LOW);
@@ -244,14 +244,13 @@ void loop() {
 
     // Select one of the cards
     if ( mfrc522.PICC_ReadCardSerial()) {
-      clearLine(1);
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
 
       traceChln("Tag Id: " + tagId);
 
       int passengerRank = searchTag(tagId, root);
       if (passengerRank > -1) {
-        lcdPrint(2, 0, (*root)["Passengers"][passengerRank]["Name"].as<String>());
+        lcdPrint(2, (*root)["Passengers"][passengerRank]["Name"].as<String>());
         setPresent(passengerRank, 1, 2, root);
         digitalWrite(LED_PIN_RED, LOW);
         digitalWrite(LED_PIN_GREEN, HIGH);
@@ -316,13 +315,13 @@ void handleFileUpload() { // upload a new file to the SPIFFS
       fsUploadFile.close();                               // Close the file again
       traceCh("handleFileUpload Size: "); traceChln(String(upload.totalSize));
       traceChln("file name : " + upload.filename);
-      lcdPrint(1, 0, "Get JSON -> OK");
+      lcdPrint(1, "Get JSON -> OK");
       server.sendHeader("Location", "/success.html");     // Redirect the client to the success page
       server.send(303);
       updateJson(jsonFileName, &root);
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
-      lcdPrint(1, 0, "Get JSON File -> KO");
+      lcdPrint(1, "Get JSON -> KO");
     }
   }
 }
@@ -409,7 +408,11 @@ void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot
 }
 
 // LCD management
-void lcdPrint(int line, int col, String text) {
+void lcdPrint(int line, String text) {
+  lcdPrintAt(line, 0, text);
+}
+
+void lcdPrintAt(int line, int col, String text) {
   char wChTempo[] = "                    ";
   lcd.setCursor(col, line);
   strncpy(wChTempo, text.c_str(), text.length());
@@ -417,14 +420,4 @@ void lcdPrint(int line, int col, String text) {
   lcd.backlight();
 
   backlightTimer.attach(BACKLIGHT_TIMER, callbackBacklight);
-}
-
-void lcdPrintPassager(String passenger) {
-  clearLine(1);
-  lcdPrint(1, 0, passenger);
-}
-
-void clearLine(int ligne) {
-  lcd.setCursor(0, ligne);
-  lcd.print("                    ");
 }
