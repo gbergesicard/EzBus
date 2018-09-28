@@ -30,8 +30,8 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 LiquidCrystal_I2C lcd(0x27, 20, 4); // Set the LCD address to 0x27 for a 16 chars and 2 line display
 // Tickers
 Ticker backlightTimer;
-Ticker passengerInboundTimer;
-bool passengerInboundTimerOn;   // To know if passengerInboundTimer is active
+Ticker cardDetectedTimer;
+bool cardDetectedTimerOn;   // To know if cardDetectedTimer is active
 // Network
 IPAddress apIP(192, 168, 1, 1);
 // for the captive network
@@ -156,11 +156,11 @@ void callbackBacklight() {
 /*
    Callback for inbound passenger timer
 */
-void callbackPassengerInbound() {
+void callbackCardDetected() {
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_GREEN, LOW);
-  passengerInboundTimer.detach();
-  passengerInboundTimerOn = false;
+  cardDetectedTimer.detach();
+  cardDetectedTimerOn = false;
 }
 
 void setup() {
@@ -239,9 +239,11 @@ void loop() {
   server.handleClient();
 
   // Look for new cards
-  if (mfrc522.PICC_IsNewCardPresent() and !passengerInboundTimerOn) {
+  if (mfrc522.PICC_IsNewCardPresent() and !cardDetectedTimerOn) {
     digitalWrite(LED_PIN_RED, HIGH);
-
+    cardDetectedTimer.attach(INBOUND_TIMER, callbackCardDetected);
+    cardDetectedTimerOn = true;
+        
     // Select one of the cards
     if ( mfrc522.PICC_ReadCardSerial()) {
       String tagId = getStringFromByteArray(mfrc522.uid.uidByte, mfrc522.uid.size);
@@ -254,8 +256,7 @@ void loop() {
         setPresent(passengerRank, 1, 2, root);
         digitalWrite(LED_PIN_RED, LOW);
         digitalWrite(LED_PIN_GREEN, HIGH);
-        passengerInboundTimer.attach(INBOUND_TIMER, callbackPassengerInbound);
-        passengerInboundTimerOn = true;
+
       }
     }
   }
