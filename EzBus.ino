@@ -7,36 +7,41 @@
 #include <SPI.h>                // SPI management for RFID reader
 #include <MFRC522.h>            // RFID reader management
 #include <LiquidCrystal_I2C.h>  // LCD screen management
-#include <Ticker.h>             // LCD backlight timeout management
+#include <Ticker.h>             // LCD backlight/green LED and buzzer timeout management
 
 #define REV "REV0001"
 
 // LED pins
-#define LED_PIN_RED   0 
+#define LED_PIN_RED   0
 #define LED_PIN_GREEN 2
 
 // MFRC522 pins
 #define RST_PIN 16 // D0
-#define SS_PIN 15 // D8
+#define SS_PIN 15  // D8
 
 #define BACKLIGHT_TIMER 8 // 8 seconds
+#define INBOUND_TIMER   1 // 1 second before turning off green LED and buzzer
 
 int debug = 1;
 File fsUploadFile;              // a File object to temporarily store the received file
-ESP8266WebServer server(80);    // Web server on port 80 
-WiFiClient client;              // wifi client 
+ESP8266WebServer server(80);    // Web server on port 80
+WiFiClient client;              // wifi client
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 20, 4); // Set the LCD address to 0x27 for a 16 chars and 2 line display
+// Tickers
 Ticker backlightTimer;
+Ticker passengerInboundTimer;
+bool passengerInboundTimerOn;   // To know if passengerInboundTimer is active
+// Network
 IPAddress apIP(192, 168, 1, 1);
 // for the captive network
 const byte DNS_PORT = 53;
 DNSServer dnsServer;            // dns server for captive wifi
 int captiveNetwork = 0;
 StaticJsonBuffer<20480> jsonBuffer;
-String jsonFileName="/EZBus.json";
-String cssFileName="/EZBus.css";
-String css ="";
+String jsonFileName = "/EZBus.json";
+String cssFileName = "/EZBus.css";
+String css = "";
 JsonObject* root;
 char meta[] = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
 
@@ -44,15 +49,15 @@ String getContentType(String filename); // convert the file extension to the MIM
 bool handleFileRead(String path);       // send the right file to the client (if it exists)
 void handleFileUpload();                // upload a new file to the SPIFFS
 
-void header(String* s){
+void header(String* s) {
   *s = "<!DOCTYPE html>";
   *s += meta;
   *s += "<html>";
-  *s += "<head><style>"+css+"</style><title>EZBus</title></head>"; 
+  *s += "<head><style>" + css + "</style><title>EZBus</title></head>";
   *s += "<body>";
 }
-void footer(String* s){
-  *s +="<br><br><a href=\"/\">Home</a><br>";
+void footer(String* s) {
+  *s += "<br><br><a href=\"/\">Home</a><br>";
   *s += "</body>";
   *s += "</html>";
 }
@@ -60,42 +65,42 @@ void footer(String* s){
 // Generate the server page
 void root_Page() {
   traceChln("Serving Root Page");
-  String s="";
+  String s = "";
   // Generate the html root page
   header(&s);
-  s +="<h1>EzBus</h1> ";
-  s +="<a href=\"/settings\">Settings</a><br>";
-  s +="<a href=\"/travel\">Voyage</a><br>";
+  s += "<h1>EzBus</h1> ";
+  s += "<a href=\"/settings\">Settings</a><br>";
+  s += "<a href=\"/travel\">Voyage</a><br>";
   s += "</body>";
   s += "</html>";
   server.send( 200 , "text/html", s);
 }
 void settings_Page() {
   traceChln("Serving settings Page");
-  String s="";
+  String s = "";
   // Generate the html root page
   header(&s);
-  s +="<h1>EzBus Settings</h1> ";
-  s +="<a href=\"/up\">Upload file</a><br>";
+  s += "<h1>EzBus Settings</h1> ";
+  s += "<a href=\"/up\">Upload file</a><br>";
   footer(&s);
   server.send( 200 , "text/html", s);
 }
 void travel_Page() {
   traceChln("Serving travel Page");
-  String s="";
+  String s = "";
   // Generate the html root page
   header(&s);
-  s +="<h1>EzBus travel</h1> ";
-  s +="<a href=\"/passengers\">Liste voyageurs</a><br>";
-  s +="<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
-  s +="<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
+  s += "<h1>EzBus travel</h1> ";
+  s += "<a href=\"/passengers\">Liste voyageurs</a><br>";
+  s += "<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
+  s += "<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
   footer(&s);
   server.send( 200 , "text/html", s);
 }
 
-void upload_Page(){
+void upload_Page() {
   traceChln("Serving Upload Page");
-  String s="";
+  String s = "";
   // build page
   header(&s);
   s += "<h1>EzBus File Upload</h1>";
@@ -112,53 +117,62 @@ void passenger_Page() {
   int arraySize =  (*root)["Passengers"].size();
   traceCh("Nb Passengers :");
   traceChln(String(arraySize));
-  String s="";
+  String s = "";
   // Generate the html root page
   header(&s);
-  s +="<h1>Liste des Voyageurs</h1> ";
-  s +="<table>";
-  s +="<h2>Nombre de voyageurs total : "+String(arraySize)+"</h2>";
-  s +="<tr>";
-  s +="  <th>Nom</th>";
-  s +="  <th>Num&eacute;ro badge</th>";
-  s +="</tr>";
-  // loop on the liste elements 
-  for(short wni = 0;wni <arraySize;wni++){
-    s +="<tr>";
+  s += "<h1>Liste des Voyageurs</h1> ";
+  s += "<table>";
+  s += "<h2>Nombre de voyageurs total : " + String(arraySize) + "</h2>";
+  s += "<tr>";
+  s += "  <th>Nom</th>";
+  s += "  <th>Num&eacute;ro badge</th>";
+  s += "</tr>";
+  // loop on the liste elements
+  for (short wni = 0; wni < arraySize; wni++) {
+    s += "<tr>";
     const char* Name = (*root)["Passengers"][wni]["Name"];
     const char* Tag = (*root)["Passengers"][wni]["Tag"];
-    s +="<td>";
-    s +=Name;
-    s +="</td>";
-    s +="<td>";
-    s +=Tag;
-    s +="</td>";
-    s +="</tr>";
+    s += "<td>";
+    s += Name;
+    s += "</td>";
+    s += "<td>";
+    s += Tag;
+    s += "</td>";
+    s += "</tr>";
   }
-  s +="</table>";
+  s += "</table>";
   footer(&s);
   server.send( 200 , "text/html", s);
 }
 
-
 /*
- * Callback for backlight saver management
- */
+   Callback for backlight saver management
+*/
 void callbackBacklight() {
   lcd.noBacklight();
   backlightTimer.detach();
 }
 
+/*
+   Callback for inbound passenger timer
+*/
+void callbackPassengerInbound() {
+  digitalWrite(LED_PIN_RED, LOW);
+  digitalWrite(LED_PIN_GREEN, LOW);
+  passengerInboundTimer.detach();
+  passengerInboundTimerOn = false;
+}
+
 void setup() {
   // Init the LCD
   lcd.begin();
-  lcdPrint(0,0,"Starting setup");
-  
+  lcdPrint(0, 0, "Starting setup");
+
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP("EZBus");
   delay(100); //Stable AP
-  if(debug == 1){
+  if (debug == 1) {
     Serial.begin(115200); //Set Baud Rate
     Serial.print("IP address:\t");
     Serial.println(WiFi.localIP());           // Send the IP address of the ESP8266 to the computer
@@ -177,55 +191,57 @@ void setup() {
   // initilize file system
   SPIFFS.begin();
 
-  if (isFileExists(jsonFileName)){
-    lcdPrint(1,0,"Load JSON");
-    updateJson(jsonFileName,&root);
+  if (isFileExists(jsonFileName)) {
+    lcdPrint(1, 0, "Load JSON");
+    updateJson(jsonFileName, &root);
   }
-  if (isFileExists(cssFileName)){
+  if (isFileExists(cssFileName)) {
     loadCss(cssFileName);
   }
   /*String jsonString="{\"Passengers\":[{\"Name\":\"BERTHOUD MARTIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"BETEND ELIOTT\", \"Tag\":\"04508ee2ac5c80\", \"Issues\":\"2\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BETEND GASPARD\", \"Tag\":\"04548ee2ac5c80\", \"Issues\":\"3\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET AMANDINE\", \"Tag\":\"04588ee2ac5c80\", \"Issues\":\"4\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET ARTHUR\", \"Tag\":\"04608ee2ac5c80\", \"Issues\":\"5\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET NICOLAS\", \"Tag\":\"045c8ee2ac5c80\", \"Issues\":\"6\", \"PI\":[], \"EI\":[]},{\"Name\":\"BIBOLLET SAMUEL\", \"Tag\":\"\", \"Issues\":\"7\", \"PI\":[], \"EI\":[]},{\"Name\":\"BOUMIZI ADAM-ADRIANO\", \"Tag\":\"\", \"Issues\":\"8\", \"PI\":[], \"EI\":[]},{\"Name\":\"CARANTE GABIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"CHARVAT LORIS\", \"Tag\":\"db4db8c3\", \"Issues\":\"1\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHARVAT NINO\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL LOLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL SOFIA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHRETIEN LILIAN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CREDOZ ESTELLE\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE MAÉ\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE STELLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]}],\"Travels\":[{\"Id\":1,\"Name\":\"Aller\",\"Steps\":[1]},{\"Id\":2,\"Name\":\"Retour\",\"Steps\":[2]}],\"Steps\":[{\"Id\":1,\"Place\":\"Les Villards\"},{\"Id\":2,\"Place\":\"La Clusaz\"}]}";
-  root =  &jsonBuffer.parseObject(jsonString);*/
-  
+    root =  &jsonBuffer.parseObject(jsonString);*/
+
   dnsServer.start(DNS_PORT, "*", apIP);
   server.onNotFound(root_Page);
-  server.on("/",root_Page);
-  server.on("/up",upload_Page);
-  server.on("/settings",settings_Page);
-  server.on("/travel",travel_Page);
-  server.on("/passengers",passenger_Page);
-  
+  server.on("/", root_Page);
+  server.on("/up", upload_Page);
+  server.on("/settings", settings_Page);
+  server.on("/travel", travel_Page);
+  server.on("/passengers", passenger_Page);
+
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
-    [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
-    handleFileUpload                                    // Receive and save the file
-  );
+  []() {
+    server.send(200);
+  },                          // Send status 200 (OK) to tell the client we are ready to receive
+  handleFileUpload                                    // Receive and save the file
+           );
   server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
-  if (!handleFileRead(jsonFileName))                // send it if it exists
-    server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
+    if (!handleFileRead(jsonFileName))                // send it if it exists
+      server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
   });
-  
+
   server.begin();
-  // captive network is active 
+  // captive network is active
   captiveNetwork = 1;
 
   // Setup end
-  lcdPrint(0,0,"EZBus ready!");
-  lcdPrint(1,0,REV);
+  lcdPrint(0, 0, "EZBus ready!");
+  lcdPrint(1, 0, REV);
+
+  digitalWrite(LED_PIN_RED, LOW);
+  digitalWrite(LED_PIN_GREEN, LOW);
 }
 
 void loop() {
-  digitalWrite(LED_PIN_RED, LOW);
-  digitalWrite(LED_PIN_GREEN, LOW);
-  
-  if (captiveNetwork == 1){
+  if (captiveNetwork == 1) {
     dnsServer.processNextRequest();
   }
   server.handleClient();
 
   // Look for new cards
-  if (mfrc522.PICC_IsNewCardPresent()) {
+  if (mfrc522.PICC_IsNewCardPresent() and !passengerInboundTimerOn) {
     digitalWrite(LED_PIN_RED, HIGH);
-    
+
     // Select one of the cards
     if ( mfrc522.PICC_ReadCardSerial()) {
       clearLine(1);
@@ -235,11 +251,12 @@ void loop() {
 
       int passengerRank = searchTag(tagId, root);
       if (passengerRank > -1) {
-        lcdPrint(1,0,(*root)["Passengers"][passengerRank]["Name"].as<String>());
-        setPresent(passengerRank,1,2,root);
+        lcdPrint(2, 0, (*root)["Passengers"][passengerRank]["Name"].as<String>());
+        setPresent(passengerRank, 1, 2, root);
         digitalWrite(LED_PIN_RED, LOW);
         digitalWrite(LED_PIN_GREEN, HIGH);
-        delay(1000);
+        passengerInboundTimer.attach(INBOUND_TIMER, callbackPassengerInbound);
+        passengerInboundTimerOn = true;
       }
     }
   }
@@ -248,8 +265,8 @@ void loop() {
 String getStringFromByteArray(byte *buffer, byte bufferSize) {
   String myString = "";
   for (byte i = 0; i < bufferSize; i++) {
-      myString += (buffer[i] < 0x10 ? "0" : "");
-      myString += String(buffer[i], HEX);
+    myString += (buffer[i] < 0x10 ? "0" : "");
+    myString += String(buffer[i], HEX);
   }
   return myString;
 }
@@ -281,39 +298,39 @@ bool handleFileRead(String path) { // send the right file to the client (if it e
   return false;
 }
 
-void handleFileUpload(){ // upload a new file to the SPIFFS
+void handleFileUpload() { // upload a new file to the SPIFFS
   traceChln("uploading a file !");
   HTTPUpload& upload = server.upload();
-  if(upload.status == UPLOAD_FILE_START){
+  if (upload.status == UPLOAD_FILE_START) {
     String filename = upload.filename;
-    if(!filename.startsWith("/")) filename = "/"+filename;
+    if (!filename.startsWith("/")) filename = "/" + filename;
     jsonFileName = filename;
     traceCh("handleFileUpload Name: "); traceChln(filename);
     fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
     filename = String();
-  } else if(upload.status == UPLOAD_FILE_WRITE){
-    if(fsUploadFile)
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (fsUploadFile)
       fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
-  } else if(upload.status == UPLOAD_FILE_END){
-    if(fsUploadFile) {                                    // If the file was successfully created
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (fsUploadFile) {                                   // If the file was successfully created
       fsUploadFile.close();                               // Close the file again
       traceCh("handleFileUpload Size: "); traceChln(String(upload.totalSize));
-      traceChln("file name : "+upload.filename);
-      lcdPrint(1,0,"Get JSON -> OK");
-      server.sendHeader("Location","/success.html");      // Redirect the client to the success page
+      traceChln("file name : " + upload.filename);
+      lcdPrint(1, 0, "Get JSON -> OK");
+      server.sendHeader("Location", "/success.html");     // Redirect the client to the success page
       server.send(303);
-      updateJson(jsonFileName,&root);
+      updateJson(jsonFileName, &root);
     } else {
       server.send(500, "text/plain", "500: couldn't create file");
-      lcdPrint(1,0,"Get JSON File -> KO");
+      lcdPrint(1, 0, "Get JSON File -> KO");
     }
   }
 }
 
-void updateJson(String fileName,JsonObject** Proot){
+void updateJson(String fileName, JsonObject** Proot) {
   traceChln("updateJson load file");
   traceChln(fileName);
-  if(fileName == ""){
+  if (fileName == "") {
     return;
   }
   File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
@@ -322,58 +339,57 @@ void updateJson(String fileName,JsonObject** Proot){
   traceChln(json);
   jsonBuffer.clear();
   *Proot =  &jsonBuffer.parseObject(json);
-  if((**Proot).invalid()==JsonObject::invalid()){
+  if ((**Proot).invalid() == JsonObject::invalid()) {
     traceChln("Failed to parse Json");
   }
   int arraySize =  (**Proot)["Passengers"].size();
-  String s=String(arraySize);
-  traceChln("Nb liste : "+s);
+  String s = String(arraySize);
+  traceChln("Nb liste : " + s);
 }
 
-
-void loadCss(String fileName){
-    traceChln("loadCss load file");
-    traceChln(fileName);
-  if(fileName == ""){
+void loadCss(String fileName) {
+  traceChln("loadCss load file");
+  traceChln(fileName);
+  if (fileName == "") {
     return;
   }
-  File dataFile = SPIFFS.open(fileName, "r");   //open file (path has been set elsewhere and works)
+  File dataFile = SPIFFS.open(fileName, "r");   // open file (path has been set elsewhere and works)
   css = dataFile.readString();                  // read data to 'css' variable
   dataFile.close();                             // close file
   traceChln(css);
 }
 
-bool isFileExists(String filename){
-  return(SPIFFS.exists(filename));
+bool isFileExists(String filename) {
+  return (SPIFFS.exists(filename));
 }
 
-void traceChln(char* chTrace){
-  if (debug == 1){
+void traceChln(char* chTrace) {
+  if (debug == 1) {
     Serial.println(chTrace);
   }
 }
-void traceChln(String chTrace){
-  if (debug == 1){
+void traceChln(String chTrace) {
+  if (debug == 1) {
     Serial.println(chTrace);
   }
 }
-void traceCh(char* chTrace){
-  if (debug == 1){
+void traceCh(char* chTrace) {
+  if (debug == 1) {
     Serial.print(chTrace);
   }
 }
-void traceCh(String chTrace){
-  if (debug == 1){
+void traceCh(String chTrace) {
+  if (debug == 1) {
     Serial.print(chTrace);
   }
 }
 
 /*
- * Search the tag "tag" in the json "proot"
- * Return the rank if found, else -1
- */
+   Search the tag "tag" in the json "proot"
+   Return the rank if found, else -1
+*/
 int searchTag(String tag, JsonObject* proot) {
-  for (int i=0; i<(*proot)["Passengers"].size(); i++) {
+  for (int i = 0; i < (*proot)["Passengers"].size(); i++) {
     if ((*proot)["Passengers"][i]["Tag"] == tag) {
       return i;
     }
@@ -382,11 +398,11 @@ int searchTag(String tag, JsonObject* proot) {
 }
 
 /*
- * Mark a passager as present
- */
+   Mark a passager as present
+*/
 void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot) {
-  char stringJson[]=""; 
-  sprintf(stringJson,"[%d,%d]",travel,stepTravel);
+  char stringJson[] = "";
+  sprintf(stringJson, "[%d,%d]", travel, stepTravel);
   JsonArray& newArray = jsonBuffer.parseArray(stringJson);
   JsonArray& passengerEI = (*proot)["Passengers"][passengerRank]["EI"];
   passengerEI.add(newArray);
@@ -394,19 +410,21 @@ void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot
 
 // LCD management
 void lcdPrint(int line, int col, String text) {
-  lcd.setCursor(col,line);
-  lcd.print(text);
+  char wChTempo[] = "                    ";
+  lcd.setCursor(col, line);
+  strncpy(wChTempo, text.c_str(), text.length());
+  lcd.print(wChTempo);
   lcd.backlight();
 
   backlightTimer.attach(BACKLIGHT_TIMER, callbackBacklight);
 }
 
-void lcdPrintPassager(String passenger){
+void lcdPrintPassager(String passenger) {
   clearLine(1);
-  lcdPrint(1,0,passenger);
+  lcdPrint(1, 0, passenger);
 }
 
-void clearLine(int ligne){
-  lcd.setCursor(0,ligne);
+void clearLine(int ligne) {
+  lcd.setCursor(0, ligne);
   lcd.print("                    ");
 }
