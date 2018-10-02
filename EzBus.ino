@@ -21,6 +21,7 @@
 
 #define BACKLIGHT_TIMER 8 // 8 seconds
 #define INBOUND_TIMER   1 // 1 second before turning off green LED and buzzer
+#define TIMELOG_TIMER   600 // Will be used to log the current Ms in a log file
 
 int debug = 1;
 File fsUploadFile;              // a File object to temporarily store the received file
@@ -31,6 +32,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4); // Set the LCD address to 0x27 for a 16 char
 // Tickers
 Ticker backlightTimer;
 Ticker cardDetectedTimer;
+Ticker timeLogTimer;
 bool cardDetectedTimerOn;   // To know if cardDetectedTimer is active
 // Network
 IPAddress apIP(192, 168, 1, 1);
@@ -41,6 +43,7 @@ int captiveNetwork = 0;
 StaticJsonBuffer<20480> jsonBuffer;
 const String jsonFileName = "/EZBus.json";
 const String cssFileName = "/EZBus.css";
+const String timeLogFileName = "/Time.log";
 String css = "";
 JsonObject* root;
 char meta[] = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
@@ -82,6 +85,7 @@ void settings_Page() {
   header(&s);
   s += "<h1>EzBus Settings</h1> ";
   s += "<a href=\"/up\">Upload file</a><br>";
+  s += "<a href=\"/timelog\">Time log (in seconds)</a><br>";
   footer(&s);
   server.send( 200 , "text/html", s);
 }
@@ -153,6 +157,16 @@ void callbackBacklight() {
   backlightTimer.detach();
 }
 
+void callbackTimeLog() {
+  // ToDo write the current ms in a log file
+  File dataFile = SPIFFS.open(timeLogFileName, "w");
+  float wfTime = millis()/1000;
+  traceCh("Time log : ");
+  traceChln(String(wfTime));
+  dataFile.println(String(wfTime));
+  dataFile.close();
+}
+
 /*
    Callback for inbound passenger timer
 */
@@ -219,6 +233,10 @@ void setup() {
     if (!handleFileRead(jsonFileName))                // send it if it exists
       server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
   });
+  server.on("/timelog", HTTP_GET, []() {                 // if the client requests the upload page
+    if (!handleFileRead(timeLogFileName))                // send it if it exists
+      server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
+  });
 
   server.begin();
   // captive network is active
@@ -230,6 +248,9 @@ void setup() {
 
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_GREEN, LOW);
+
+  // Start time log
+  timeLogTimer.attach(TIMELOG_TIMER, callbackTimeLog);
 }
 
 void loop() {
