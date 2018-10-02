@@ -85,6 +85,7 @@ void settings_Page() {
   header(&s);
   s += "<h1>EzBus Settings</h1> ";
   s += "<a href=\"/up\">Upload file</a><br>";
+  s += "<a href=\"/upload\">Download json file</a><br>";
   s += "<a href=\"/timelog\">Time log (in seconds)</a><br>";
   s += "<a href=\"/timelogbak\">Backup Time log (in seconds)</a><br>";
   footer(&s);
