@@ -86,6 +86,7 @@ void settings_Page() {
   s += "<h1>EzBus Settings</h1> ";
   s += "<a href=\"/up\">Upload file</a><br>";
   s += "<a href=\"/timelog\">Time log (in seconds)</a><br>";
+  s += "<a href=\"/timelogbak\">Backup Time log (in seconds)</a><br>";
   footer(&s);
   server.send( 200 , "text/html", s);
 }
@@ -212,6 +213,11 @@ void setup() {
   if (isFileExists(cssFileName)) {
     updateCss(cssFileName);
   }
+  if (isFileExists(timeLogFileName)) {
+    // the file exist so we need to backup it 
+    SPIFFS.remove(timeLogFileName+".bak");
+    SPIFFS.rename(timeLogFileName,timeLogFileName+".bak");
+  }
   /*String jsonString="{\"Passengers\":[{\"Name\":\"BERTHOUD MARTIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"BETEND ELIOTT\", \"Tag\":\"04508ee2ac5c80\", \"Issues\":\"2\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BETEND GASPARD\", \"Tag\":\"04548ee2ac5c80\", \"Issues\":\"3\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET AMANDINE\", \"Tag\":\"04588ee2ac5c80\", \"Issues\":\"4\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET ARTHUR\", \"Tag\":\"04608ee2ac5c80\", \"Issues\":\"5\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"BIBOLLET NICOLAS\", \"Tag\":\"045c8ee2ac5c80\", \"Issues\":\"6\", \"PI\":[], \"EI\":[]},{\"Name\":\"BIBOLLET SAMUEL\", \"Tag\":\"\", \"Issues\":\"7\", \"PI\":[], \"EI\":[]},{\"Name\":\"BOUMIZI ADAM-ADRIANO\", \"Tag\":\"\", \"Issues\":\"8\", \"PI\":[], \"EI\":[]},{\"Name\":\"CARANTE GABIN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[], \"EI\":[]},{\"Name\":\"CHARVAT LORIS\", \"Tag\":\"db4db8c3\", \"Issues\":\"1\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHARVAT NINO\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL LOLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHOIRAL SOFIA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CHRETIEN LILIAN\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"CREDOZ ESTELLE\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE MAÉ\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]},{\"Name\":\"DELOCHE STELLA\", \"Tag\":\"\", \"Issues\":\"0\", \"PI\":[[1,1],[2,2]], \"EI\":[]}],\"Travels\":[{\"Id\":1,\"Name\":\"Aller\",\"Steps\":[1]},{\"Id\":2,\"Name\":\"Retour\",\"Steps\":[2]}],\"Steps\":[{\"Id\":1,\"Place\":\"Les Villards\"},{\"Id\":2,\"Place\":\"La Clusaz\"}]}";
     root =  &jsonBuffer.parseObject(jsonString);*/
 
@@ -235,6 +241,11 @@ void setup() {
   });
   server.on("/timelog", HTTP_GET, []() {                 // if the client requests the upload page
     if (!handleFileRead(timeLogFileName))                // send it if it exists
+      server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
+  });
+
+  server.on("/timelogbak", HTTP_GET, []() {                 // if the client requests the upload page
+    if (!handleFileRead(timeLogFileName+".bak"))                // send it if it exists
       server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
   });
 
