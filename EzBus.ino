@@ -31,9 +31,9 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 LiquidCrystal_I2C lcd(0x27, 20, 4); // Set the LCD address to 0x27 for a 16 chars and 2 line display
 // Tickers
 Ticker backlightTimer;
-Ticker cardDetectedTimer;
 Ticker timeLogTimer;
-bool cardDetectedTimerOn;   // To know if cardDetectedTimer is active
+Ticker cardDetectedTimer;
+bool cardDetectedTimerOn = false;   // To know if cardDetectedTimer is active
 // Network
 IPAddress apIP(192, 168, 1, 1);
 // for the captive network
