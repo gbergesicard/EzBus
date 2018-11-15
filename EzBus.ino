@@ -100,6 +100,7 @@ void travel_Page() {
   // Generate the html root page
   header(&s);
   s += "<h1>EzBus travel</h1> ";
+  s += "<a href=\"/travels\">Liste voyages</a><br>";
   s += "<a href=\"/passengers\">Liste voyageurs</a><br>";
   s += "<a href=\"/\">Liste voyageurs pr&eacute;sents &agrave; l&#039;&eacute;tape</a><br>";
   s += "<a href=\"/\">Liste voyageurs manquants &agrave; l&#039;&eacute;tape</a><br>";
@@ -122,7 +123,7 @@ void upload_Page() {
   server.send( 200 , "text/html", s);
 }
 void passenger_Page() {
-  traceChln("Serving travel Page");
+  traceChln("Serving passenger Page");
   int arraySize =  (*root)["Passengers"].size();
   traceCh("Nb Passengers :");
   traceChln(String(arraySize));
@@ -150,6 +151,53 @@ void passenger_Page() {
     s += "</tr>";
   }
   s += "</table>";
+  footer(&s);
+  server.send( 200 , "text/html", s);
+}
+
+void travels_Page() {
+  traceChln("Serving travel Page");
+  int arraySize =  (*root)["Travels"].size();
+  traceCh("Nb travel :");
+  traceChln(String(arraySize));
+  String s = "";
+  // Generate the html root page
+  header(&s);
+  s += "<h1>Liste des trajets</h1> ";
+  s += "<h2>Nombre de trajets total : " + String(arraySize) + "</h2>";
+  for (short wni = 0; wni < arraySize; wni++) {
+    s += "<table>";
+    s += "<tr>";
+    s += "  <th>Trajet</th>";
+    s += "  <th>Mont&eacute;e</th>";
+    s += "</tr>";
+    const char* travelName = (*root)["Travels"][wni]["Name"];
+    s += "<tr>";
+    s += "<td>";
+    s += travelName;
+    s += "</td>";
+    s += "<td>";
+    s += "</td>";
+    s += "</tr>";
+
+    int stepsSize =  (*root)["Travels"][wni]["Steps"].size();
+    traceCh("Nb steps :");
+    traceChln(String(stepsSize));
+    
+    // loop on the liste elements
+    for (short wnj = 0; wnj < stepsSize; wnj++) {
+      const char* onboarding = (*root)["Steps"][(*root)["Travels"][wni]["Steps"][wnj]]["Name"];
+      s += "<tr>";
+      s += "<td>";
+      s += "</td>";
+      s += "<td>";
+      s += onboarding;
+      s += "</td>";
+      s += "</tr>";
+    }
+    s += "</table>";
+    
+  }
   footer(&s);
   server.send( 200 , "text/html", s);
 }
@@ -232,6 +280,7 @@ void setup() {
   server.on("/settings", settings_Page);
   server.on("/travel", travel_Page);
   server.on("/passengers", passenger_Page);
+  server.on("/travels", travels_Page);
 
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
   []() {
