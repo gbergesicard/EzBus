@@ -10,7 +10,7 @@
 #include <Ticker.h>             // LCD backlight/green LED and buzzer timeout management
 
 #define REV "REV0001"
-
+  
 // LED pins
 #define LED_PIN_RED   0
 #define LED_PIN_GREEN 2
@@ -51,6 +51,9 @@ char meta[] = "<meta name=\"viewport\" content=\"width=device-width, initial-sca
 String getContentType(String filename); // convert the file extension to the MIME type
 bool handleFileRead(String path);       // send the right file to the client (if it exists)
 void handleFileUpload();                // upload a new file to the SPIFFS
+
+int currentTravel = 0;                 // The current travel rank
+int currentStep = 0;                   // The current step rank
 
 void header(String* s) {
   *s = "<!DOCTYPE html>";
@@ -263,6 +266,7 @@ void setup() {
 
   // Start time log
   timeLogTimer.attach(TIMELOG_TIMER, callbackTimeLog);
+  afficheTrajet(currentTravel, currentStep, root);
 }
 
 void loop() {
@@ -350,7 +354,7 @@ void handleFileUpload() { // upload a new file to the SPIFFS
       traceChln("file name : " + upload.filename);
       lcdPrint(1, "Get "+upload.filename+" -> OK");
       if (("/"+upload.filename)==jsonFileName) {
-        updateJson(jsonFileName, &root);        
+        updateJson(jsonFileName, &root);      
       } 
       if (("/"+upload.filename)==cssFileName) {
         updateCss(cssFileName);        
@@ -422,9 +426,9 @@ void traceCh(String chTrace) {
 }
 
 /*
-   Search the tag "tag" in the json "proot"
-   Return the rank if found, else -1
-*/
+ * Search the tag "tag" in the json "proot"
+ * Return the rank if found, else -1
+ */
 int searchTag(String tag, JsonObject* proot) {
   for (int i = 0; i < (*proot)["Passengers"].size(); i++) {
     if ((*proot)["Passengers"][i]["Tag"] == tag) {
@@ -435,8 +439,8 @@ int searchTag(String tag, JsonObject* proot) {
 }
 
 /*
-   Mark a passager as present
-*/
+ * Mark a passager as present
+ */
 void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot) {
   char stringJson[] = "";
   sprintf(stringJson, "[%d,%d]", travel, stepTravel);
@@ -447,7 +451,7 @@ void setPresent(int passengerRank, int travel, int stepTravel, JsonObject* proot
 
 // LCD management
 void lcdPrint(int line, String text) {
-  lcdPrintAt(line, 0, text);
+  lcdPrintAt(line, 0, text.substring(0,20));
 }
 
 void lcdPrintAt(int line, int col, String text) {
@@ -459,3 +463,12 @@ void lcdPrintAt(int line, int col, String text) {
 
   backlightTimer.attach(BACKLIGHT_TIMER, callbackBacklight);
 }
+
+void afficheTrajet(int currentTravel, int currentStep, JsonObject* proot) {
+  if (proot) {
+    lcdPrint(1,(*proot)["Travels"][currentTravel]["Name"].as<String>()+"-"+(*proot)["Steps"][currentStep]["Name"].as<String>());
+    traceChln((*proot)["Travels"][currentTravel]["Name"].as<String>());
+    traceChln((*proot)["Steps"][currentStep]["Name"].as<String>());
+  } 
+}
+
